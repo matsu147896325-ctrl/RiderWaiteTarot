@@ -1,0 +1,808 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ケルト十字タロット</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --ink: #f7efe0;
+        --muted: #c7b98d;
+        --line: rgba(230, 194, 113, 0.34);
+        --gold: #dfb45d;
+        --gold-2: #f3d98d;
+        --shadow: rgba(0, 0, 0, 0.44);
+        --panel: rgba(23, 20, 30, 0.82);
+        --panel-2: rgba(43, 33, 39, 0.88);
+        --card-w: clamp(58px, 7.2vw, 94px);
+        --card-h: calc(var(--card-w) * 1.714);
+        font-family:
+          "Yu Mincho", "Hiragino Mincho ProN", "Times New Roman", serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at 18% 18%, rgba(190, 70, 54, 0.2), transparent 30%),
+          radial-gradient(circle at 86% 8%, rgba(63, 115, 129, 0.22), transparent 26%),
+          linear-gradient(135deg, #151017 0%, #261925 44%, #12161d 100%);
+      }
+
+      button,
+      input,
+      textarea {
+        font: inherit;
+      }
+
+      button {
+        border: 0;
+        cursor: pointer;
+      }
+
+      .app {
+        width: min(1500px, 100%);
+        margin: 0 auto;
+        padding: 24px;
+      }
+
+      .topbar {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 18px;
+        align-items: end;
+        padding-bottom: 18px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(28px, 4vw, 58px);
+        letter-spacing: 0;
+        line-height: 1;
+      }
+
+      .lead {
+        margin: 12px 0 0;
+        color: var(--muted);
+        font-size: clamp(14px, 1.3vw, 18px);
+        line-height: 1.7;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        justify-content: flex-end;
+      }
+
+      .primary,
+      .ghost {
+        min-height: 42px;
+        border-radius: 8px;
+        padding: 10px 16px;
+        color: #181016;
+        background: linear-gradient(180deg, var(--gold-2), var(--gold));
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+        font-weight: 700;
+      }
+
+      .ghost {
+        color: var(--ink);
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.16);
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(340px, 1fr) minmax(330px, 430px);
+        gap: 22px;
+        align-items: start;
+      }
+
+      .reading-table,
+      .side {
+        border: 1px solid var(--line);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
+        box-shadow: 0 20px 70px var(--shadow);
+      }
+
+      .reading-table {
+        min-height: 740px;
+        border-radius: 8px;
+        position: relative;
+        overflow: hidden;
+        padding: 22px;
+      }
+
+      .reading-table::before {
+        content: "";
+        position: absolute;
+        inset: 18px;
+        border: 1px solid rgba(242, 211, 137, 0.38);
+        pointer-events: none;
+      }
+
+      .spread-title {
+        position: relative;
+        z-index: 1;
+        margin: 0 auto 14px;
+        width: min(420px, 72%);
+        padding: 9px 18px 11px;
+        text-align: center;
+        color: #2a1b12;
+        background: linear-gradient(90deg, #c88829, #f6c04f 18%, #ffd578 50%, #f6c04f 82%, #c88829);
+        font-size: clamp(22px, 3vw, 42px);
+        line-height: 1;
+        font-weight: 800;
+        box-shadow: 0 10px 22px rgba(0, 0, 0, 0.18);
+      }
+
+      .spread-area {
+        position: relative;
+        z-index: 1;
+        height: 620px;
+        max-width: 850px;
+        margin: 0 auto;
+      }
+
+      .slot {
+        position: absolute;
+        width: var(--card-w);
+        height: var(--card-h);
+        transform: translate(-50%, -50%);
+        border-radius: 7px;
+        border: 1px dashed rgba(255, 231, 176, 0.34);
+        background: rgba(255, 255, 255, 0.045);
+      }
+
+      .slot.crossed {
+        transform: translate(-50%, -50%) rotate(90deg);
+      }
+
+      .slot-label {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        display: grid;
+        place-items: center;
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        color: #2b1b13;
+        background: #fff5d2;
+        font-weight: 800;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.24);
+      }
+
+      .slot.crossed .slot-label {
+        transform: translate(-50%, -50%) rotate(-90deg);
+      }
+
+      .card {
+        position: absolute;
+        inset: 0;
+        border-radius: 7px;
+        transform-style: preserve-3d;
+        transition:
+          transform 0.65s cubic-bezier(0.2, 0.8, 0.2, 1),
+          filter 0.25s ease;
+      }
+
+      .card.revealed {
+        transform: rotateY(180deg);
+      }
+
+      .slot.crossed .card.revealed {
+        transform: rotateY(180deg);
+      }
+
+      .face {
+        position: absolute;
+        inset: 0;
+        border-radius: 7px;
+        overflow: hidden;
+        backface-visibility: hidden;
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.35);
+      }
+
+      .back {
+        border: 3px solid #8bcbd0;
+        background:
+          radial-gradient(circle at center, #fff9df 0 18%, transparent 19%),
+          radial-gradient(circle at center, rgba(255, 249, 223, 0.28) 0 32%, transparent 33%),
+          repeating-radial-gradient(circle at center, transparent 0 18px, rgba(255, 255, 255, 0.35) 19px 20px),
+          #66beca;
+      }
+
+      .back::before,
+      .back::after {
+        content: "TAROT";
+        position: absolute;
+        left: 0;
+        right: 0;
+        text-align: center;
+        color: rgba(255, 255, 255, 0.82);
+        font-size: 9px;
+        letter-spacing: 2px;
+      }
+
+      .back::before {
+        top: 8px;
+      }
+
+      .back::after {
+        bottom: 8px;
+      }
+
+      .front {
+        transform: rotateY(180deg);
+        background: #f8edd4;
+      }
+
+      .front img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+
+      .reversed .front img {
+        transform: rotate(180deg);
+      }
+
+      .slot-name {
+        position: absolute;
+        top: calc(100% + 7px);
+        left: 50%;
+        width: 150px;
+        transform: translateX(-50%);
+        color: var(--muted);
+        text-align: center;
+        font-size: 12px;
+        line-height: 1.35;
+      }
+
+      .side {
+        border-radius: 8px;
+        padding: 18px;
+      }
+
+      .question-box {
+        display: grid;
+        gap: 10px;
+        margin-bottom: 18px;
+      }
+
+      label {
+        color: var(--gold-2);
+        font-weight: 700;
+      }
+
+      textarea {
+        width: 100%;
+        min-height: 86px;
+        resize: vertical;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 8px;
+        padding: 12px;
+        color: var(--ink);
+        background: rgba(0, 0, 0, 0.22);
+        line-height: 1.6;
+      }
+
+      .status {
+        display: grid;
+        gap: 8px;
+        margin-bottom: 16px;
+        padding: 12px;
+        border-radius: 8px;
+        background: rgba(0, 0, 0, 0.18);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .meter {
+        height: 8px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.11);
+        overflow: hidden;
+      }
+
+      .meter span {
+        display: block;
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, #b4444c, #e9ba58, #78c0c5);
+        transition: width 0.3s ease;
+      }
+
+      .deck {
+        min-height: 220px;
+        position: relative;
+        margin: 0 0 20px;
+        border-radius: 8px;
+        background: rgba(0, 0, 0, 0.14);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        overflow: hidden;
+      }
+
+      .draw-card {
+        position: absolute;
+        width: 74px;
+        height: 126px;
+        border-radius: 7px;
+        border: 2px solid #8bcbd0;
+        background:
+          radial-gradient(circle at center, #fff9df 0 17%, transparent 18%),
+          radial-gradient(circle at center, rgba(255, 249, 223, 0.25) 0 31%, transparent 32%),
+          #66beca;
+        box-shadow: 0 12px 20px rgba(0, 0, 0, 0.28);
+        transform-origin: 50% 130%;
+        transition:
+          transform 0.18s ease,
+          opacity 0.22s ease,
+          filter 0.18s ease;
+      }
+
+      .draw-card:hover,
+      .draw-card:focus-visible {
+        outline: 0;
+        filter: brightness(1.15);
+        transform: translateY(-16px) rotate(var(--rot));
+      }
+
+      .draw-card.used {
+        pointer-events: none;
+        opacity: 0;
+      }
+
+      .results {
+        display: grid;
+        gap: 10px;
+      }
+
+      .result-card {
+        display: grid;
+        grid-template-columns: 74px minmax(0, 1fr);
+        gap: 12px;
+        align-items: start;
+        border-radius: 8px;
+        padding: 12px;
+        background: var(--panel);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .result-image {
+        width: 74px;
+        aspect-ratio: 350 / 600;
+        border-radius: 5px;
+        overflow: hidden;
+        background: #f8edd4;
+        box-shadow: 0 8px 18px rgba(0, 0, 0, 0.34);
+      }
+
+      .result-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+
+      .result-image.reversed img {
+        transform: rotate(180deg);
+      }
+
+      .result-body {
+        min-width: 0;
+      }
+
+      .result-card strong {
+        display: block;
+        color: var(--gold-2);
+        margin-bottom: 4px;
+      }
+
+      .result-card span {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .result-card p {
+        margin: 8px 0 0;
+        line-height: 1.65;
+      }
+
+      .summary {
+        border-radius: 8px;
+        padding: 16px;
+        background:
+          linear-gradient(180deg, rgba(223, 180, 93, 0.14), rgba(120, 192, 197, 0.08)),
+          var(--panel-2);
+        border: 1px solid rgba(243, 217, 141, 0.34);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.26);
+      }
+
+      .summary h3 {
+        margin: 0 0 8px;
+        color: var(--gold-2);
+        font-size: 18px;
+      }
+
+      .summary p {
+        margin: 0;
+        line-height: 1.75;
+      }
+
+      .empty {
+        color: var(--muted);
+        line-height: 1.7;
+        padding: 12px;
+        border: 1px dashed rgba(255, 255, 255, 0.18);
+        border-radius: 8px;
+      }
+
+      @media (max-width: 980px) {
+        .topbar,
+        .layout {
+          grid-template-columns: 1fr;
+        }
+
+        .actions {
+          justify-content: flex-start;
+        }
+
+        .reading-table {
+          min-height: 620px;
+          padding: 16px;
+        }
+
+        .spread-area {
+          height: 500px;
+        }
+
+        :root {
+          --card-w: clamp(46px, 10vw, 72px);
+        }
+      }
+
+      @media (max-width: 560px) {
+        .app {
+          padding: 14px;
+        }
+
+        .reading-table {
+          min-height: 520px;
+        }
+
+        .spread-area {
+          height: 420px;
+        }
+
+        .slot-name {
+          display: none;
+        }
+
+        .draw-card {
+          width: 56px;
+          height: 96px;
+        }
+
+        .result-card {
+          grid-template-columns: 64px minmax(0, 1fr);
+        }
+
+        .result-image {
+          width: 64px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app">
+      <header class="topbar">
+        <div>
+          <h1>ケルト十字タロット</h1>
+          <p class="lead">問いを心に置き、伏せられたカードを10枚選んでください。選んだ順に、現在、障害、顕在意識、近い未来へと展開されます。</p>
+        </div>
+        <div class="actions">
+          <button class="ghost" id="clearQuestion" type="button">問いを消す</button>
+          <button class="primary" id="reset" type="button">新しく占う</button>
+        </div>
+      </header>
+
+      <section class="layout" aria-label="ケルト十字占いアプリ">
+        <div class="reading-table">
+          <h2 class="spread-title">ケルト十字</h2>
+          <div class="spread-area" id="spread" aria-label="カード展開エリア"></div>
+        </div>
+
+        <aside class="side">
+          <div class="question-box">
+            <label for="question">占いたいこと</label>
+            <textarea id="question" placeholder="恋愛、仕事、選択、今の流れなど"></textarea>
+          </div>
+
+          <div class="status" aria-live="polite">
+            <div id="statusText">カードを混ぜています。</div>
+            <div class="meter" aria-hidden="true"><span id="meter"></span></div>
+          </div>
+
+          <div class="deck" id="deck" aria-label="伏せられたカード"></div>
+          <div class="results" id="results">
+            <div class="empty">選んだカードの意味がここに表示されます。</div>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <script>
+      const IMAGE_BASE = "https://raw.githubusercontent.com/metabismuth/tarot-json/master/cards/";
+
+      const positions = [
+        { id: 1, name: "現在", hint: "いま中心にある力", x: 42, y: 48 },
+        { id: 2, name: "障害", hint: "交差している課題", x: 42, y: 48, crossed: true },
+        { id: 3, name: "顕在意識", hint: "意識している願い", x: 42, y: 22 },
+        { id: 4, name: "土台", hint: "根にある感情や背景", x: 42, y: 74 },
+        { id: 5, name: "近い未来", hint: "これから現れやすい流れ", x: 62, y: 48 },
+        { id: 6, name: "過去", hint: "離れつつある影響", x: 22, y: 48 },
+        { id: 7, name: "あなた", hint: "自分自身の姿勢", x: 82, y: 77 },
+        { id: 8, name: "周囲", hint: "環境や関係者の空気", x: 82, y: 58 },
+        { id: 9, name: "願望と不安", hint: "期待と迷い", x: 82, y: 39 },
+        { id: 10, name: "最終結果", hint: "このまま進んだ先", x: 82, y: 20 }
+      ];
+
+      const cards = [
+        ["The Fool", "愚者", "m00.jpg", "自由な始まり、未知へ踏み出す勇気"],
+        ["The Magician", "魔術師", "m01.jpg", "意志、技術、場を動かす力"],
+        ["The High Priestess", "女教皇", "m02.jpg", "直感、静けさ、まだ語られていない真実"],
+        ["The Empress", "女帝", "m03.jpg", "豊かさ、育つ関係、受け取る力"],
+        ["The Emperor", "皇帝", "m04.jpg", "秩序、責任、現実を形にする力"],
+        ["The Hierophant", "法王", "m05.jpg", "信頼、学び、伝統的な道筋"],
+        ["The Lovers", "恋人", "m06.jpg", "選択、響き合い、心の一致"],
+        ["The Chariot", "戦車", "m07.jpg", "前進、集中、矛盾を束ねる意志"],
+        ["Strength", "力", "m08.jpg", "優しさで制する強さ、忍耐、自信"],
+        ["The Hermit", "隠者", "m09.jpg", "内省、探求、答えを照らす小さな灯"],
+        ["Wheel of Fortune", "運命の輪", "m10.jpg", "転機、流れの変化、好機"],
+        ["Justice", "正義", "m11.jpg", "公平、判断、釣り合いを取り戻す"],
+        ["The Hanged Man", "吊るされた男", "m12.jpg", "停止、見方の反転、手放し"],
+        ["Death", "死神", "m13.jpg", "終わりと再生、区切り、変容"],
+        ["Temperance", "節制", "m14.jpg", "調和、調整、穏やかな回復"],
+        ["The Devil", "悪魔", "m15.jpg", "執着、誘惑、断ち切れる鎖"],
+        ["The Tower", "塔", "m16.jpg", "崩れる前提、目覚め、解放"],
+        ["The Star", "星", "m17.jpg", "希望、癒し、澄んだ見通し"],
+        ["The Moon", "月", "m18.jpg", "不安、曖昧さ、夢の中の手がかり"],
+        ["The Sun", "太陽", "m19.jpg", "成功、喜び、明るい肯定"],
+        ["Judgement", "審判", "m20.jpg", "呼びかけ、復活、次の段階"],
+        ["The World", "世界", "m21.jpg", "完成、統合、満ちた到達"],
+        ["Ace of Cups", "カップのエース", "c01.jpg", "感情の始まり、愛、心が開く"],
+        ["Two of Cups", "カップの2", "c02.jpg", "共感、合意、対等な結びつき"],
+        ["Three of Cups", "カップの3", "c03.jpg", "祝福、友情、分かち合い"],
+        ["Four of Cups", "カップの4", "c04.jpg", "停滞、退屈、見落としている贈り物"],
+        ["Five of Cups", "カップの5", "c05.jpg", "失望、喪失、残された可能性"],
+        ["Six of Cups", "カップの6", "c06.jpg", "懐かしさ、優しさ、過去からの贈り物"],
+        ["Seven of Cups", "カップの7", "c07.jpg", "幻想、選択肢、夢の整理"],
+        ["Eight of Cups", "カップの8", "c08.jpg", "離れる決意、探求、次の満足"],
+        ["Nine of Cups", "カップの9", "c09.jpg", "満足、願いの成就、自分への許可"],
+        ["Ten of Cups", "カップの10", "c10.jpg", "幸福、家族的調和、心の完成"],
+        ["Page of Cups", "カップのペイジ", "c11.jpg", "繊細な知らせ、創造性、素直な好意"],
+        ["Knight of Cups", "カップのナイト", "c12.jpg", "誘い、理想、感情に従う行動"],
+        ["Queen of Cups", "カップのクイーン", "c13.jpg", "包容力、共感、深い感受性"],
+        ["King of Cups", "カップのキング", "c14.jpg", "感情の成熟、落ち着き、優しい統率"],
+        ["Ace of Swords", "ソードのエース", "s01.jpg", "真実、決断、明晰な始まり"],
+        ["Two of Swords", "ソードの2", "s02.jpg", "保留、均衡、向き合う前の沈黙"],
+        ["Three of Swords", "ソードの3", "s03.jpg", "痛み、失恋、必要な現実認識"],
+        ["Four of Swords", "ソードの4", "s04.jpg", "休息、回復、考えを寝かせる時間"],
+        ["Five of Swords", "ソードの5", "s05.jpg", "勝敗への固執、距離、言葉の傷"],
+        ["Six of Swords", "ソードの6", "s06.jpg", "移行、避難、静かな前進"],
+        ["Seven of Swords", "ソードの7", "s07.jpg", "戦略、秘密、慎重な立ち回り"],
+        ["Eight of Swords", "ソードの8", "s08.jpg", "思い込み、制限、ほどける束縛"],
+        ["Nine of Swords", "ソードの9", "s09.jpg", "不安、眠れない思考、過剰な心配"],
+        ["Ten of Swords", "ソードの10", "s10.jpg", "終局、底打ち、これ以上悪くならない地点"],
+        ["Page of Swords", "ソードのペイジ", "s11.jpg", "観察、情報、鋭い好奇心"],
+        ["Knight of Swords", "ソードのナイト", "s12.jpg", "急進、突破、勢いある言葉"],
+        ["Queen of Swords", "ソードのクイーン", "s13.jpg", "洞察、率直さ、境界線"],
+        ["King of Swords", "ソードのキング", "s14.jpg", "論理、判断、知性による統率"],
+        ["Ace of Wands", "ワンドのエース", "w01.jpg", "情熱の始まり、創造、火がつく"],
+        ["Two of Wands", "ワンドの2", "w02.jpg", "計画、展望、外へ向かう意志"],
+        ["Three of Wands", "ワンドの3", "w03.jpg", "進展、待つ力、広がる可能性"],
+        ["Four of Wands", "ワンドの4", "w04.jpg", "安定、祝福、安心できる場"],
+        ["Five of Wands", "ワンドの5", "w05.jpg", "競争、摩擦、力試し"],
+        ["Six of Wands", "ワンドの6", "w06.jpg", "勝利、評価、堂々と進む"],
+        ["Seven of Wands", "ワンドの7", "w07.jpg", "防衛、主張、踏ん張りどころ"],
+        ["Eight of Wands", "ワンドの8", "w08.jpg", "急展開、連絡、流れが速まる"],
+        ["Nine of Wands", "ワンドの9", "w09.jpg", "警戒、粘り、最後の守り"],
+        ["Ten of Wands", "ワンドの10", "w10.jpg", "重荷、責任、抱えすぎ"],
+        ["Page of Wands", "ワンドのペイジ", "w11.jpg", "知らせ、冒険心、小さな情熱"],
+        ["Knight of Wands", "ワンドのナイト", "w12.jpg", "行動力、移動、燃える勢い"],
+        ["Queen of Wands", "ワンドのクイーン", "w13.jpg", "魅力、自信、場を明るくする力"],
+        ["King of Wands", "ワンドのキング", "w14.jpg", "展望、リーダーシップ、大胆な決断"],
+        ["Ace of Pentacles", "ペンタクルのエース", "p01.jpg", "現実的な始まり、機会、種まき"],
+        ["Two of Pentacles", "ペンタクルの2", "p02.jpg", "やりくり、柔軟性、波に乗る"],
+        ["Three of Pentacles", "ペンタクルの3", "p03.jpg", "協力、技術、形になる仕事"],
+        ["Four of Pentacles", "ペンタクルの4", "p04.jpg", "保持、執着、守りの姿勢"],
+        ["Five of Pentacles", "ペンタクルの5", "p05.jpg", "欠乏感、孤立、助けを求める"],
+        ["Six of Pentacles", "ペンタクルの6", "p06.jpg", "与える受け取る、公平な支援"],
+        ["Seven of Pentacles", "ペンタクルの7", "p07.jpg", "評価、待つ時間、育てたものを見る"],
+        ["Eight of Pentacles", "ペンタクルの8", "p08.jpg", "練習、勤勉、技術の積み上げ"],
+        ["Nine of Pentacles", "ペンタクルの9", "p09.jpg", "自立、豊かさ、洗練された成果"],
+        ["Ten of Pentacles", "ペンタクルの10", "p10.jpg", "継承、長期安定、共同体の豊かさ"],
+        ["Page of Pentacles", "ペンタクルのペイジ", "p11.jpg", "学び、実用的な知らせ、準備"],
+        ["Knight of Pentacles", "ペンタクルのナイト", "p12.jpg", "堅実、継続、ゆっくり確かな前進"],
+        ["Queen of Pentacles", "ペンタクルのクイーン", "p13.jpg", "養う力、実務、安心の土台"],
+        ["King of Pentacles", "ペンタクルのキング", "p14.jpg", "成功、信頼、物質面の成熟"]
+      ].map(([name, jp, img, meaning]) => ({ name, jp, img, meaning }));
+
+      const spread = document.querySelector("#spread");
+      const deckEl = document.querySelector("#deck");
+      const results = document.querySelector("#results");
+      const statusText = document.querySelector("#statusText");
+      const meter = document.querySelector("#meter");
+      const resetButton = document.querySelector("#reset");
+      const clearQuestion = document.querySelector("#clearQuestion");
+      const question = document.querySelector("#question");
+
+      let shuffled = [];
+      let selected = [];
+      let reading = [];
+
+      function shuffleDeck() {
+        shuffled = cards.map((card) => ({ ...card, reversed: Math.random() < 0.28 }));
+        for (let i = shuffled.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+      }
+
+      function renderSlots() {
+        spread.innerHTML = "";
+        positions.forEach((pos) => {
+          const slot = document.createElement("div");
+          slot.className = `slot${pos.crossed ? " crossed" : ""}`;
+          slot.style.left = `${pos.x}%`;
+          slot.style.top = `${pos.y}%`;
+          slot.dataset.position = pos.id;
+          slot.innerHTML = `<div class="slot-label">${pos.id}</div><div class="slot-name">${pos.name}<br>${pos.hint}</div>`;
+          spread.appendChild(slot);
+        });
+      }
+
+      function renderDeck() {
+        deckEl.innerHTML = "";
+        const visibleCards = 28;
+        for (let i = 0; i < visibleCards; i++) {
+          const hiddenCard = shuffled[i];
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "draw-card";
+          button.setAttribute("aria-label", `伏せられたカード ${i + 1} を選ぶ`);
+          const x = 8 + (i % 14) * 6.6;
+          const y = i < 14 ? 28 : 73;
+          const rot = -20 + (i % 14) * 3.1;
+          button.style.left = `${x}%`;
+          button.style.top = `${y}%`;
+          button.style.setProperty("--rot", `${rot}deg`);
+          button.style.transform = `translate(-50%, -50%) rotate(${rot}deg)`;
+          button.addEventListener("click", () => chooseCard(button, hiddenCard));
+          deckEl.appendChild(button);
+        }
+      }
+
+      function chooseCard(button, card) {
+        if (reading.length >= 10) return;
+        if (!card || selected.includes(card)) return;
+        selected.push(card);
+        button.classList.add("used");
+
+        const pos = positions[reading.length];
+        reading.push({ ...card, position: pos });
+        placeCard(card, pos);
+        updateResults();
+        updateStatus();
+      }
+
+      function placeCard(card, pos) {
+        const slot = spread.querySelector(`[data-position="${pos.id}"]`);
+        const cardEl = document.createElement("div");
+        cardEl.className = `card${card.reversed ? " reversed" : ""}`;
+        cardEl.innerHTML = `
+          <div class="face back"></div>
+          <div class="face front"><img alt="${card.jp}" src="${IMAGE_BASE}${card.img}"></div>
+        `;
+        slot.prepend(cardEl);
+        setTimeout(() => cardEl.classList.add("revealed"), 80);
+      }
+
+      function updateStatus() {
+        const count = reading.length;
+        meter.style.width = `${(count / 10) * 100}%`;
+        if (count < 10) {
+          const next = positions[count];
+          statusText.textContent = `${count + 1}枚目:「${next.name}」のカードを選んでください。`;
+        } else {
+          statusText.textContent = "10枚がそろいました。結果をゆっくり眺めてください。";
+        }
+      }
+
+      function tone(card) {
+        if (!card.reversed) return card.meaning;
+        return `${card.meaning}。逆位置では、滞り、過剰、または内側で整える必要を示します。`;
+      }
+
+      function buildSummary() {
+        const current = reading.find((item) => item.position.id === 1);
+        const challenge = reading.find((item) => item.position.id === 2);
+        const future = reading.find((item) => item.position.id === 5);
+        const outcome = reading.find((item) => item.position.id === 10);
+        const reversedCount = reading.filter((item) => item.reversed).length;
+        const majorCount = reading.filter((item) => item.img.startsWith("m")).length;
+
+        const pace =
+          reversedCount >= 5
+            ? "全体として、外へ急いで動くよりも、迷い・執着・保留している感情をほどく流れが強く出ています。"
+            : "全体として、状況は動きやすく、選んだ方向へ現実を進める余地があります。";
+        const weight =
+          majorCount >= 4
+            ? "大アルカナが多いため、この占いは一時的な出来事よりも、節目や価値観の変化を示しています。"
+            : "小アルカナの比重が高く、日々の選択、言葉、行動の積み重ねが結果を左右しそうです。";
+        const advice = outcome.reversed
+          ? `最終結果の「${outcome.jp}」は逆位置なので、結論を急ぐほど本質が見えにくくなります。まずは「${challenge.jp}」が示す課題を整えることが、流れを変える鍵です。`
+          : `最終結果の「${outcome.jp}」は正位置なので、現在の「${current.jp}」から始まる流れは、近い未来の「${future.jp}」を経て形になっていきます。`;
+
+        return `${pace}${weight}${advice}`;
+      }
+
+      function updateResults() {
+        if (reading.length === 0) {
+          results.innerHTML = '<div class="empty">選んだカードの意味がここに表示されます。</div>';
+          return;
+        }
+        const cardsHtml = reading
+          .map((item) => {
+            const orientation = item.reversed ? "逆位置" : "正位置";
+            return `
+              <article class="result-card">
+                <div class="result-image${item.reversed ? " reversed" : ""}">
+                  <img alt="${item.jp} ${orientation}" src="${IMAGE_BASE}${item.img}">
+                </div>
+                <div class="result-body">
+                  <strong>${item.position.id}. ${item.position.name}: ${item.jp}</strong>
+                  <span>${orientation} / ${item.position.hint}</span>
+                  <p>${tone(item)}</p>
+                </div>
+              </article>
+            `;
+          })
+          .join("");
+        const summaryHtml =
+          reading.length === 10
+            ? `<section class="summary"><h3>総評</h3><p>${buildSummary()}</p></section>`
+            : '<div class="empty">10枚そろうと、ここに占い全体の総評が表示されます。</div>';
+        results.innerHTML = `${cardsHtml}${summaryHtml}`;
+      }
+
+      function resetReading() {
+        selected = [];
+        reading = [];
+        shuffleDeck();
+        renderSlots();
+        renderDeck();
+        updateResults();
+        updateStatus();
+      }
+
+      resetButton.addEventListener("click", resetReading);
+      clearQuestion.addEventListener("click", () => {
+        question.value = "";
+        question.focus();
+      });
+
+      resetReading();
+    </script>
+  </body>
+</html>
