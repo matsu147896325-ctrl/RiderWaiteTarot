@@ -439,6 +439,10 @@
         line-height: 1.75;
       }
 
+      .summary p + p {
+        margin-top: 10px;
+      }
+
       .empty {
         color: var(--muted);
         line-height: 1.7;
@@ -734,27 +738,86 @@
         return `${card.meaning}。逆位置では、滞り、過剰、または内側で整える必要を示します。`;
       }
 
+      function suitOf(card) {
+        const prefix = card.img.charAt(0);
+        return { c: "カップ", s: "ソード", w: "ワンド", p: "ペンタクル", m: "大アルカナ" }[prefix];
+      }
+
+      function strongestSuit() {
+        const counts = reading.reduce((acc, card) => {
+          const suit = suitOf(card);
+          acc[suit] = (acc[suit] || 0) + 1;
+          return acc;
+        }, {});
+        return Object.entries(counts).sort((a, b) => b[1] - a[1])[0] || ["なし", 0];
+      }
+
+      function pickLine(seed, lines) {
+        return lines[Math.abs(seed) % lines.length];
+      }
+
       function buildSummary() {
         const current = reading.find((item) => item.position.id === 1);
         const challenge = reading.find((item) => item.position.id === 2);
+        const conscious = reading.find((item) => item.position.id === 3);
+        const base = reading.find((item) => item.position.id === 4);
         const future = reading.find((item) => item.position.id === 5);
+        const past = reading.find((item) => item.position.id === 6);
+        const self = reading.find((item) => item.position.id === 7);
+        const environment = reading.find((item) => item.position.id === 8);
+        const hopeFear = reading.find((item) => item.position.id === 9);
         const outcome = reading.find((item) => item.position.id === 10);
         const reversedCount = reading.filter((item) => item.reversed).length;
         const majorCount = reading.filter((item) => item.img.startsWith("m")).length;
-
-        const pace =
-          reversedCount >= 5
-            ? "全体として、外へ急いで動くよりも、迷い・執着・保留している感情をほどく流れが強く出ています。"
-            : "全体として、状況は動きやすく、選んだ方向へ現実を進める余地があります。";
-        const weight =
+        const courtCount = reading.filter((item) => /11|12|13|14/.test(item.img)).length;
+        const [mainSuit, suitCount] = strongestSuit();
+        const seed = reading.reduce((sum, item, index) => sum + item.jp.charCodeAt(0) * (index + 3), 0);
+        const reverseTone =
+          reversedCount >= 7
+            ? "逆位置がかなり多いです。正直に言うと、今は流れが悪いというより、あなた側の迷い・先延ばし・見ないふりが状況を濁らせています。"
+            : reversedCount >= 4
+              ? "逆位置が目立ちます。完全に詰んでいるわけではありませんが、勢いだけで押すと同じところで引っかかります。"
+              : "正位置が多く、状況そのものは動かせます。ただし、楽観だけで済む配置ではありません。";
+        const suitTone = {
+          カップ: `カップが${suitCount}枚出ているので、問題の中心は理屈ではなく感情です。好き嫌い、寂しさ、期待、未練をきれいごとで処理しようとすると読みを外します。`,
+          ソード: `ソードが${suitCount}枚出ているので、言葉・判断・情報が焦点です。曖昧な返事や勝手な推測を続けるほど、話はこじれます。`,
+          ワンド: `ワンドが${suitCount}枚出ているので、勢いと意思が強く出ています。ただ、熱量があるぶん、雑に突っ込むと摩擦も増えます。`,
+          ペンタクル: `ペンタクルが${suitCount}枚出ているので、現実面が重いです。気持ちよりも、時間、お金、実績、生活リズム、約束を見たほうが答えに近いです。`,
+          大アルカナ: `大アルカナが${suitCount}枚あり、これは小手先の調整では済みにくい配置です。今のテーマは出来事そのものより、あなたの選び方や価値観を変えに来ています。`
+        }[mainSuit];
+        const axisTone = pickLine(seed, [
+          `現在の「${current.jp}」に対して、障害の「${challenge.jp}」がかなり強く割り込んでいます。望みはあるのに、やり方か前提が噛み合っていません。`,
+          `過去の「${past.jp}」から現在の「${current.jp}」を見ると、もう同じ手は通用しません。以前うまくいった態度を続けるほど、今回は鈍くなります。`,
+          `土台の「${base.jp}」と顕在意識の「${conscious.jp}」にズレがあります。頭では分かっているつもりでも、腹の底では別のものを欲しがっています。`
+        ]);
+        const relationTone =
+          self.reversed && !environment.reversed
+            ? `あなた自身の「${self.jp}」が逆位置で、周囲の「${environment.jp}」は正位置です。はっきり言うと、周りよりあなたの受け取り方のほうが乱れています。`
+            : !self.reversed && environment.reversed
+              ? `あなた自身の「${self.jp}」は正位置ですが、周囲の「${environment.jp}」が逆位置です。相手や環境に期待しすぎると消耗します。`
+              : self.reversed && environment.reversed
+                ? `あなたと周囲の両方に逆位置が出ています。今は空気を読んで丸く収めるより、一度距離を置いて条件を見直すべきです。`
+                : `あなたの「${self.jp}」と周囲の「${environment.jp}」は正位置です。協力は得られますが、遠慮して黙ると好機を逃します。`;
+        const warningTone = hopeFear.reversed
+          ? `願望と不安の「${hopeFear.jp}」が逆位置なので、怖がっていることの一部は誇張されています。とはいえ、放置すれば現実になります。`
+          : `願望と不安の「${hopeFear.jp}」は正位置です。望みは明確ですが、同時にそれを失う怖さも強く、判断を鈍らせています。`;
+        const outcomeTone = outcome.reversed
+          ? `結論として、最終結果の「${outcome.jp}」が逆位置です。このまま行けば、期待よりも不完全燃焼が残ります。対策は「${challenge.jp}」を避けないこと、そして近い未来の「${future.jp}」が示す動きを小さくても実行に移すことです。`
+          : `結論として、最終結果の「${outcome.jp}」は正位置です。ただし勝手に良くなる配置ではありません。現在の「${current.jp}」を起点に、近い未来の「${future.jp}」を現実の行動へ落とせた場合にだけ、結果が育ちます。`;
+        const courtTone =
+          courtCount >= 3
+            ? "人物札が多いので、これは一人で完結する話ではありません。誰と組むか、誰の言葉を信じるかで結果がかなり変わります。"
+            : "人物札は多すぎません。誰かの気分に振り回されるより、あなた自身の選択と行動を整えるほうが効きます。";
+        const majorTone =
           majorCount >= 4
-            ? "大アルカナが多いため、この占いは一時的な出来事よりも、節目や価値観の変化を示しています。"
-            : "小アルカナの比重が高く、日々の選択、言葉、行動の積み重ねが結果を左右しそうです。";
-        const advice = outcome.reversed
-          ? `最終結果の「${outcome.jp}」は逆位置なので、結論を急ぐほど本質が見えにくくなります。まずは「${challenge.jp}」が示す課題を整えることが、流れを変える鍵です。`
-          : `最終結果の「${outcome.jp}」は正位置なので、現在の「${current.jp}」から始まる流れは、近い未来の「${future.jp}」を経て形になっていきます。`;
+            ? "大アルカナも強く、流れは軽くありません。ごまかしても後で同じ課題が戻ってきます。"
+            : "大アルカナは支配的ではないため、運命任せにするより日々の修正が効きます。";
 
-        return `${pace}${weight}${advice}`;
+        return [
+          `${reverseTone}${suitTone}${majorTone}`,
+          `${axisTone}${relationTone}${warningTone}`,
+          `${courtTone}${outcomeTone}`
+        ];
       }
 
       function updateResults() {
@@ -781,7 +844,7 @@
           .join("");
         const summaryHtml =
           reading.length === 10
-            ? `<section class="summary"><h3>総評</h3><p>${buildSummary()}</p></section>`
+            ? `<section class="summary"><h3>総評</h3>${buildSummary().map((line) => `<p>${line}</p>`).join("")}</section>`
             : '<div class="empty">10枚そろうと、ここに占い全体の総評が表示されます。</div>';
         results.innerHTML = `${cardsHtml}${summaryHtml}`;
       }
