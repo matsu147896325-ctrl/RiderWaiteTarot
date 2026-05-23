@@ -756,6 +756,67 @@
         return lines[Math.abs(seed) % lines.length];
       }
 
+      function cardRank(card) {
+        if (card.img.startsWith("m")) return "major";
+        const number = Number(card.img.slice(1, 3));
+        if (number === 1) return "ace";
+        if (number >= 11) return ["page", "knight", "queen", "king"][number - 11];
+        if (number <= 3) return "early";
+        if (number <= 6) return "middle";
+        if (number <= 9) return "late";
+        return "ten";
+      }
+
+      function rankTone(card) {
+        const rank = cardRank(card);
+        const suit = suitOf(card);
+        const tones = {
+          major: `${card.jp}は小さな気分ではなく、今のテーマそのものを変えに来るカードです。`,
+          ace: `${suit}のエースなので、芽はあります。ただし芽であって、完成ではありません。`,
+          early: `${card.jp}は始まりの段階です。まだ固まっていないので、良くも悪くも扱い方次第です。`,
+          middle: `${card.jp}は途中経過のカードです。ここで雑に処理すると後半でツケが来ます。`,
+          late: `${card.jp}は積み上がった結果を示します。偶然ではなく、これまでの選択が表に出ています。`,
+          ten: `${card.jp}は一つの限界や完成を示します。続けるなら形を変える必要があります。`,
+          page: `${card.jp}は未熟さと可能性の両方です。軽い一言や小さな連絡を甘く見ないほうがいいです。`,
+          knight: `${card.jp}は動きのカードです。止まって考えるより、動きながら調整する局面です。`,
+          queen: `${card.jp}は受け止め方を問います。強く出るより、場をどう育てるかが重要です。`,
+          king: `${card.jp}は責任を問います。誰かに決めてもらう態度では、このカードの力は使えません。`
+        };
+        return tones[rank];
+      }
+
+      function cardPressure(card) {
+        const suit = suitOf(card);
+        const messages = {
+          カップ: card.reversed
+            ? "感情を隠しているつもりでも、態度には出ています。"
+            : "本音に触れれば流れますが、きれいな言葉だけでは足りません。",
+          ソード: card.reversed
+            ? "考えすぎ、言い過ぎ、または言わなさすぎが邪魔です。"
+            : "事実確認と明確な言葉が鍵です。察してもらう作戦は弱いです。",
+          ワンド: card.reversed
+            ? "勢いが空回りしています。熱意だけでは相手や状況は動きません。"
+            : "動けば動くほど景色は変わります。ただし雑な強行突破は別問題です。",
+          ペンタクル: card.reversed
+            ? "現実の管理が甘いです。時間、お金、約束、体力のどれかを見落としています。"
+            : "現実に落とせるカードです。小さくても形にした人が勝ちます。",
+          大アルカナ: card.reversed
+            ? "流れに逆らっている部分があります。認めたくない前提ほど核心です。"
+            : "流れは大きいです。小手先のごまかしより、腹を決める必要があります。"
+        };
+        return messages[suit];
+      }
+
+      function themeFromQuestion() {
+        const value = question.value.trim();
+        if (/恋|愛|彼|彼女|結婚|復縁|片思い|相手/.test(value)) return "恋愛";
+        if (/仕事|転職|会社|職場|上司|部下|副業|案件/.test(value)) return "仕事";
+        if (/金|お金|収入|投資|貯金|支払/.test(value)) return "お金";
+        if (/家族|友人|人間関係|親|子|夫|妻/.test(value)) return "人間関係";
+        if (/選|迷|進路|決断|どうする|べき/.test(value)) return "選択";
+        return "全般";
+      }
+
       function buildSummary() {
         const current = reading.find((item) => item.position.id === 1);
         const challenge = reading.find((item) => item.position.id === 2);
@@ -771,52 +832,101 @@
         const majorCount = reading.filter((item) => item.img.startsWith("m")).length;
         const courtCount = reading.filter((item) => /11|12|13|14/.test(item.img)).length;
         const [mainSuit, suitCount] = strongestSuit();
-        const seed = reading.reduce((sum, item, index) => sum + item.jp.charCodeAt(0) * (index + 3), 0);
-        const reverseTone =
-          reversedCount >= 7
-            ? "逆位置がかなり多いです。正直に言うと、今は流れが悪いというより、あなた側の迷い・先延ばし・見ないふりが状況を濁らせています。"
-            : reversedCount >= 4
-              ? "逆位置が目立ちます。完全に詰んでいるわけではありませんが、勢いだけで押すと同じところで引っかかります。"
-              : "正位置が多く、状況そのものは動かせます。ただし、楽観だけで済む配置ではありません。";
-        const suitTone = {
-          カップ: `カップが${suitCount}枚出ているので、問題の中心は理屈ではなく感情です。好き嫌い、寂しさ、期待、未練をきれいごとで処理しようとすると読みを外します。`,
-          ソード: `ソードが${suitCount}枚出ているので、言葉・判断・情報が焦点です。曖昧な返事や勝手な推測を続けるほど、話はこじれます。`,
-          ワンド: `ワンドが${suitCount}枚出ているので、勢いと意思が強く出ています。ただ、熱量があるぶん、雑に突っ込むと摩擦も増えます。`,
-          ペンタクル: `ペンタクルが${suitCount}枚出ているので、現実面が重いです。気持ちよりも、時間、お金、実績、生活リズム、約束を見たほうが答えに近いです。`,
-          大アルカナ: `大アルカナが${suitCount}枚あり、これは小手先の調整では済みにくい配置です。今のテーマは出来事そのものより、あなたの選び方や価値観を変えに来ています。`
-        }[mainSuit];
-        const axisTone = pickLine(seed, [
-          `現在の「${current.jp}」に対して、障害の「${challenge.jp}」がかなり強く割り込んでいます。望みはあるのに、やり方か前提が噛み合っていません。`,
-          `過去の「${past.jp}」から現在の「${current.jp}」を見ると、もう同じ手は通用しません。以前うまくいった態度を続けるほど、今回は鈍くなります。`,
-          `土台の「${base.jp}」と顕在意識の「${conscious.jp}」にズレがあります。頭では分かっているつもりでも、腹の底では別のものを欲しがっています。`
+        const questionTheme = themeFromQuestion();
+        const questionSeed = [...question.value].reduce((sum, char) => sum + char.charCodeAt(0), 0);
+        const seed = reading.reduce((sum, item, index) => sum + item.jp.charCodeAt(0) * (index + 5) + item.img.charCodeAt(0), questionSeed);
+        const pairSets = [
+          [current, challenge, "今すぐ直視すべき衝突"],
+          [conscious, base, "頭で望むことと腹底の本音"],
+          [past, future, "過去の癖と近い未来の動き"],
+          [self, environment, "あなたの姿勢と周囲の反応"],
+          [hopeFear, outcome, "怖れと結末のつながり"]
+        ];
+        const chosenPairs = [pairSets[seed % pairSets.length], pairSets[(seed + majorCount + reversedCount + 2) % pairSets.length]];
+        const openingStyles = [
+          `今回の${questionTheme}の占いは、甘く見ると外します。`,
+          `まず結論から言うと、これは気分の問題だけではありません。`,
+          `この展開は、やさしい励ましより現実確認を求めています。`,
+          `良い悪いで単純に切るより、どこで自分をごまかしているかを見る配置です。`,
+          `全体の空気はかなりはっきりしています。曖昧にしている箇所ほど結果に響きます。`
+        ];
+        const spreadMood = [
+          reversedCount >= 7 ? "逆位置が多すぎます。今は外の条件より、内側の抵抗や未整理の感情が邪魔をしています。" : "",
+          reversedCount <= 2 ? "正位置が多く、動かす余地はあります。ただし、何もしなくても良くなるという意味ではありません。" : "",
+          majorCount >= 4 ? "大アルカナが強く、これは一時の気まぐれではなく節目の読みです。" : "",
+          courtCount >= 3 ? "人物札が目立つので、誰と関わるか、誰の言葉を採用するかが結果を変えます。" : "",
+          `${mainSuit}が${suitCount}枚で最多です。今回の焦点は${mainSuit === "大アルカナ" ? "人生の流れそのもの" : `${mainSuit}的な領域`}に寄っています。`
+        ].filter(Boolean);
+        const pairText = chosenPairs
+          .map(([left, right, label], index) => {
+            const contrast =
+              left.reversed === right.reversed
+                ? left.reversed
+                  ? "どちらも逆位置なので、ここは停滞が濃いです。"
+                  : "どちらも正位置なので、ここは使える力があります。"
+                : left.reversed
+                  ? `「${left.jp}」側が乱れていて、「${right.jp}」側はまだ使えます。`
+                  : `「${left.jp}」は働いていますが、「${right.jp}」側に歪みがあります。`;
+            const bite = index === 0 ? "ここをごまかすと、総評全体がぼやけます。" : "ここは補助線ではなく、実際に態度を変えるポイントです。";
+            return `${label}を見ると、「${left.jp}」と「${right.jp}」が向き合っています。${contrast}${bite}`;
+          })
+          .join("");
+        const cardSpecific = pickLine(seed + 11, [
+          `特に「${challenge.jp}」は障害の位置なので、これは避けても消えません。${rankTone(challenge)}${cardPressure(challenge)}`,
+          `近い未来の「${future.jp}」は、次に起きやすい動きです。${rankTone(future)}${cardPressure(future)}`,
+          `土台の「${base.jp}」は、表に出にくい原因です。${rankTone(base)}${cardPressure(base)}`,
+          `あなた自身の「${self.jp}」は、今の姿勢をかなり正直に出しています。${rankTone(self)}${cardPressure(self)}`,
+          `願望と不安の「${hopeFear.jp}」は、欲しいものと怖いものが混ざっている場所です。${rankTone(hopeFear)}${cardPressure(hopeFear)}`
         ]);
-        const relationTone =
-          self.reversed && !environment.reversed
-            ? `あなた自身の「${self.jp}」が逆位置で、周囲の「${environment.jp}」は正位置です。はっきり言うと、周りよりあなたの受け取り方のほうが乱れています。`
-            : !self.reversed && environment.reversed
-              ? `あなた自身の「${self.jp}」は正位置ですが、周囲の「${environment.jp}」が逆位置です。相手や環境に期待しすぎると消耗します。`
-              : self.reversed && environment.reversed
-                ? `あなたと周囲の両方に逆位置が出ています。今は空気を読んで丸く収めるより、一度距離を置いて条件を見直すべきです。`
-                : `あなたの「${self.jp}」と周囲の「${environment.jp}」は正位置です。協力は得られますが、遠慮して黙ると好機を逃します。`;
-        const warningTone = hopeFear.reversed
-          ? `願望と不安の「${hopeFear.jp}」が逆位置なので、怖がっていることの一部は誇張されています。とはいえ、放置すれば現実になります。`
-          : `願望と不安の「${hopeFear.jp}」は正位置です。望みは明確ですが、同時にそれを失う怖さも強く、判断を鈍らせています。`;
-        const outcomeTone = outcome.reversed
-          ? `結論として、最終結果の「${outcome.jp}」が逆位置です。このまま行けば、期待よりも不完全燃焼が残ります。対策は「${challenge.jp}」を避けないこと、そして近い未来の「${future.jp}」が示す動きを小さくても実行に移すことです。`
-          : `結論として、最終結果の「${outcome.jp}」は正位置です。ただし勝手に良くなる配置ではありません。現在の「${current.jp}」を起点に、近い未来の「${future.jp}」を現実の行動へ落とせた場合にだけ、結果が育ちます。`;
-        const courtTone =
-          courtCount >= 3
-            ? "人物札が多いので、これは一人で完結する話ではありません。誰と組むか、誰の言葉を信じるかで結果がかなり変わります。"
-            : "人物札は多すぎません。誰かの気分に振り回されるより、あなた自身の選択と行動を整えるほうが効きます。";
-        const majorTone =
-          majorCount >= 4
-            ? "大アルカナも強く、流れは軽くありません。ごまかしても後で同じ課題が戻ってきます。"
-            : "大アルカナは支配的ではないため、運命任せにするより日々の修正が効きます。";
+        const themeAdvice = {
+          恋愛: [
+            "恋愛として読むなら、相手の気持ちを想像で埋めるのは危険です。確認しない優しさは、ただの逃げになることがあります。",
+            "恋愛面では、好きかどうかより、相手の行動が継続しているかを見てください。言葉だけを採点すると見誤ります。",
+            "復縁や片思いなら、待つだけの姿勢は弱いです。動くなら条件を決め、動かないなら執着を切る覚悟が必要です。"
+          ],
+          仕事: [
+            "仕事として読むなら、評価されたい気持ちより、成果物と期限を見てください。雰囲気で乗り切る段階ではありません。",
+            "職場や転職の話なら、我慢を美徳にしすぎています。続ける理由と辞めない言い訳を混同しないでください。",
+            "仕事面では、誰かの顔色より数字と実績です。曖昧な期待に乗ると、後で責任だけ残ります。"
+          ],
+          お金: [
+            "お金の話なら、希望的観測は削ってください。入る予定より、出ていく固定費と回収できないリスクを見るべきです。",
+            "金銭面では、勢いの支出や投資判断に注意です。勝てる話より、負けた時に耐えられるかを見てください。",
+            "収入や支払いのテーマなら、見通しの甘さが出ています。数字に落とせない計画は信用しないほうがいいです。"
+          ],
+          人間関係: [
+            "人間関係なら、丸く収めることと本音を飲み込むことは別です。沈黙で守った関係は、あとで歪みます。",
+            "相手に合わせすぎると、結局あなたの不満が漏れます。最初から境界線を引いたほうが長持ちします。",
+            "この関係は、空気を読むほど読みにくくなります。言葉にすることを避けないでください。"
+          ],
+          選択: [
+            "選択の占いなら、どちらが正解かより、選んだ後に責任を取れるかです。失敗しない道を探すほど決められません。",
+            "迷っているなら、情報不足ではなく覚悟不足の可能性があります。もう少し調べる、の前に何を怖がっているか見てください。",
+            "決断のテーマでは、先延ばしも一つの選択です。ただし、その選択はたいてい一番弱い結果を連れてきます。"
+          ],
+          全般: [
+            "全般で読むなら、今は気持ちより行動の癖が結果を作っています。何を望むかより、何を繰り返しているかを見てください。",
+            "この展開は、都合の良い解釈を許してくれません。変えたいなら、まず同じ反応を繰り返すのを止めることです。",
+            "今必要なのは励ましではなく、整理です。残すもの、切るもの、今週動かすものを分けてください。"
+          ]
+        }[questionTheme];
+        const outcomeLines = outcome.reversed
+          ? [
+              `最終結果の「${outcome.jp}」が逆位置なので、このままでは満足度は低いです。望んだ形に近づけるには、まず「${challenge.jp}」を障害として認める必要があります。`,
+              `結末の「${outcome.jp}」が逆位置です。厳しく言うと、今の姿勢のままだと惜しいところで崩れます。特に「${future.jp}」の示す次の動きを軽く見ないでください。`,
+              `最後が「${outcome.jp}」の逆位置で出た以上、楽観だけでは危ないです。勝ち筋はありますが、今のやり方をそのまま続けるのは違います。`
+            ]
+          : [
+              `最終結果の「${outcome.jp}」は正位置です。可能性はあります。ただし、棚ぼたではなく「${current.jp}」から「${future.jp}」へ行動をつなげた場合の結果です。`,
+              `結末の「${outcome.jp}」は悪くありません。けれど、そこへ行くには「${challenge.jp}」を避けず、今の選び方を少し硬くする必要があります。`,
+              `最後に「${outcome.jp}」が正位置で出ています。これは救いですが、保証ではありません。良い方向に寄せるには、今日から現実の動きを一つ増やしてください。`
+            ];
 
         return [
-          `${reverseTone}${suitTone}${majorTone}`,
-          `${axisTone}${relationTone}${warningTone}`,
-          `${courtTone}${outcomeTone}`
+          `${pickLine(seed, openingStyles)}${spreadMood.sort(() => (seed % 3) - 1).slice(0, 3).join("")}`,
+          pairText,
+          `${cardSpecific}${pickLine(seed + 23, themeAdvice)}`,
+          pickLine(seed + 37, outcomeLines)
         ];
       }
 
