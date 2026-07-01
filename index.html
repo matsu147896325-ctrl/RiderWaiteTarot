@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>ケルト十字タロット</title>
+    <title>タロット占い</title>
     <style>
       :root {
         color-scheme: dark;
@@ -81,6 +81,31 @@
         justify-content: flex-end;
       }
 
+      .spread-switch {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        width: min(620px, 100%);
+        margin: 0 0 18px;
+        padding: 4px;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        border-radius: 8px;
+        background: rgba(0, 0, 0, 0.2);
+      }
+
+      .spread-switch button {
+        min-height: 40px;
+        padding: 8px 12px;
+        border-radius: 5px;
+        color: var(--muted);
+        background: transparent;
+        font-weight: 700;
+      }
+
+      .spread-switch button[aria-pressed="true"] {
+        color: #20130f;
+        background: var(--gold-2);
+      }
+
       .primary,
       .ghost {
         min-height: 42px;
@@ -149,6 +174,22 @@
         height: 620px;
         max-width: 850px;
         margin: 0 auto;
+      }
+
+      .reading-table[data-layout="three"] {
+        min-height: 500px;
+      }
+
+      .spread-area[data-layout="three"] {
+        height: 380px;
+      }
+
+      .reading-table[data-layout="hexagram"] {
+        min-height: 680px;
+      }
+
+      .spread-area[data-layout="hexagram"] {
+        height: 560px;
       }
 
       .slot {
@@ -622,6 +663,22 @@
           height: 500px;
         }
 
+        .reading-table[data-layout="three"] {
+          min-height: 440px;
+        }
+
+        .spread-area[data-layout="three"] {
+          height: 320px;
+        }
+
+        .reading-table[data-layout="hexagram"] {
+          min-height: 600px;
+        }
+
+        .spread-area[data-layout="hexagram"] {
+          height: 480px;
+        }
+
         :root {
           --card-w: clamp(46px, 10vw, 72px);
         }
@@ -638,6 +695,22 @@
 
         .spread-area {
           height: 420px;
+        }
+
+        .reading-table[data-layout="three"] {
+          min-height: 390px;
+        }
+
+        .spread-area[data-layout="three"] {
+          height: 280px;
+        }
+
+        .reading-table[data-layout="hexagram"] {
+          min-height: 520px;
+        }
+
+        .spread-area[data-layout="hexagram"] {
+          height: 400px;
         }
 
         .slot-name {
@@ -671,8 +744,8 @@
     <main class="app">
       <header class="topbar">
         <div>
-          <h1>ケルト十字タロット</h1>
-          <p class="lead">問いを心に置き、伏せられたカードを10枚選んでください。選んだ順に、現在、障害、顕在意識、近い未来へと展開されます。</p>
+          <h1 id="appTitle">タロット占い</h1>
+          <p class="lead" id="appLead">問いを心に置き、伏せられたカードを選んでください。</p>
         </div>
         <div class="actions">
           <button class="ghost" id="drawAll" type="button">10枚一挙選択</button>
@@ -683,10 +756,16 @@
         </div>
       </header>
 
-      <section class="layout" aria-label="ケルト十字占いアプリ">
-        <div class="reading-table">
-          <h2 class="spread-title">ケルト十字</h2>
-          <div class="spread-area" id="spread" aria-label="カード展開エリア"></div>
+      <nav class="spread-switch" aria-label="占い方法">
+        <button type="button" data-spread="three" aria-pressed="false">スリーカード（3枚）</button>
+        <button type="button" data-spread="hexagram" aria-pressed="false">ヘキサグラム（7枚）</button>
+        <button type="button" data-spread="celtic" aria-pressed="true">ケルト十字（10枚）</button>
+      </nav>
+
+      <section class="layout" aria-label="タロット占いアプリ">
+        <div class="reading-table" id="readingTable" data-layout="celtic">
+          <h2 class="spread-title" id="spreadTitle">ケルト十字</h2>
+          <div class="spread-area" id="spread" data-layout="celtic" aria-label="カード展開エリア"></div>
         </div>
 
         <aside class="side">
@@ -719,18 +798,46 @@
     <script>
       const IMAGE_BASE = "https://raw.githubusercontent.com/metabismuth/tarot-json/master/cards/";
 
-      const positions = [
-        { id: 1, name: "現在", hint: "いま中心にある力", x: 42, y: 48 },
-        { id: 2, name: "障害", hint: "交差している課題", x: 42, y: 48, crossed: true },
-        { id: 3, name: "顕在意識", hint: "意識している願い", x: 42, y: 22 },
-        { id: 4, name: "土台", hint: "根にある感情や背景", x: 42, y: 74 },
-        { id: 5, name: "近い未来", hint: "これから現れやすい流れ", x: 62, y: 48 },
-        { id: 6, name: "過去", hint: "離れつつある影響", x: 22, y: 48 },
-        { id: 7, name: "あなた", hint: "自分自身の姿勢", x: 82, y: 77 },
-        { id: 8, name: "周囲", hint: "環境や関係者の空気", x: 82, y: 58 },
-        { id: 9, name: "願望と不安", hint: "期待と迷い", x: 82, y: 39 },
-        { id: 10, name: "最終結果", hint: "このまま進んだ先", x: 82, y: 20 }
-      ];
+      const spreadConfigs = {
+        three: {
+          name: "スリーカード",
+          lead: "3枚を選び、過去・現在・未来の流れを読みます。",
+          positions: [
+            { id: 1, name: "過去", hint: "これまでの状況", x: 24, y: 48 },
+            { id: 2, name: "現在", hint: "いまの状況", x: 50, y: 48 },
+            { id: 3, name: "未来", hint: "これからの流れ", x: 76, y: 48 }
+          ]
+        },
+        hexagram: {
+          name: "ヘキサグラム",
+          lead: "7枚を選び、時間の流れ・双方の気持ち・助言・最終予測を読みます。",
+          positions: [
+            { id: 1, name: "過去", hint: "これまでの状況", x: 50, y: 13 },
+            { id: 2, name: "現在", hint: "いまの状況", x: 78, y: 62 },
+            { id: 3, name: "未来", hint: "これからの流れ", x: 22, y: 62 },
+            { id: 4, name: "助言", hint: "流れを変える鍵", x: 50, y: 84 },
+            { id: 5, name: "相手の気持ち", hint: "関係者の意志", x: 22, y: 31 },
+            { id: 6, name: "自分の気持ち", hint: "あなたの姿勢", x: 78, y: 31 },
+            { id: 7, name: "最終予測", hint: "助言を生かした先", x: 50, y: 49 }
+          ]
+        },
+        celtic: {
+          name: "ケルト十字",
+          lead: "10枚を選び、現在・課題・内面・周囲・最終結果を詳しく読みます。",
+          positions: [
+            { id: 1, name: "現在", hint: "いま中心にある力", x: 42, y: 48 },
+            { id: 2, name: "障害", hint: "交差している課題", x: 42, y: 48, crossed: true },
+            { id: 3, name: "顕在意識", hint: "意識している願い", x: 42, y: 22 },
+            { id: 4, name: "土台", hint: "根にある感情や背景", x: 42, y: 74 },
+            { id: 5, name: "近い未来", hint: "これから現れやすい流れ", x: 62, y: 48 },
+            { id: 6, name: "過去", hint: "離れつつある影響", x: 22, y: 48 },
+            { id: 7, name: "あなた", hint: "自分自身の姿勢", x: 82, y: 77 },
+            { id: 8, name: "周囲", hint: "環境や関係者の空気", x: 82, y: 58 },
+            { id: 9, name: "願望と不安", hint: "期待と迷い", x: 82, y: 39 },
+            { id: 10, name: "最終結果", hint: "このまま進んだ先", x: 82, y: 20 }
+          ]
+        }
+      };
 
       const cards = [
         ["The Fool", "愚者", "m00.jpg", "自由な始まり、未知へ踏み出す勇気"],
@@ -814,6 +921,10 @@
       ].map(([name, jp, img, meaning]) => ({ name, jp, img, meaning }));
 
       const spread = document.querySelector("#spread");
+      const readingTable = document.querySelector("#readingTable");
+      const spreadTitle = document.querySelector("#spreadTitle");
+      const appLead = document.querySelector("#appLead");
+      const spreadButtons = [...document.querySelectorAll("[data-spread]")];
       const deckEl = document.querySelector("#deck");
       const results = document.querySelector("#results");
       const statusText = document.querySelector("#statusText");
@@ -832,6 +943,8 @@
       let selected = [];
       let reading = [];
       let isAutoDrawing = false;
+      let currentSpreadKey = "celtic";
+      let positions = spreadConfigs[currentSpreadKey].positions;
 
       const personalCardDetails = {
         0: {
@@ -946,6 +1059,22 @@
         }
       };
 
+      function setSpread(key) {
+        if (!spreadConfigs[key] || isAutoDrawing) return;
+        currentSpreadKey = key;
+        positions = spreadConfigs[key].positions;
+        const config = spreadConfigs[key];
+        readingTable.dataset.layout = key;
+        spread.dataset.layout = key;
+        spreadTitle.textContent = config.name;
+        appLead.textContent = config.lead;
+        drawAllButton.textContent = `${positions.length}枚一挙選択`;
+        spreadButtons.forEach((button) => {
+          button.setAttribute("aria-pressed", String(button.dataset.spread === key));
+        });
+        resetReading();
+      }
+
       function shuffleDeck() {
         shuffled = cards.map((card) => ({ ...card, reversed: Math.random() < 0.28 }));
         for (let i = shuffled.length - 1; i > 0; i--) {
@@ -990,7 +1119,7 @@
 
       function chooseCard(button, card) {
         if (isAutoDrawing && button.classList.contains("used")) return;
-        if (reading.length >= 10) return;
+        if (reading.length >= positions.length) return;
         if (!card || selected.includes(card)) return;
         selected.push(card);
         button.classList.add("used");
@@ -1013,15 +1142,18 @@
         personalCardButton.disabled = disabled;
         resetButton.disabled = disabled;
         clearQuestion.disabled = disabled;
+        spreadButtons.forEach((button) => {
+          button.disabled = disabled;
+        });
         deckEl.style.pointerEvents = disabled ? "none" : "";
       }
 
       async function drawRemainingCards() {
-        if (reading.length >= 10 || isAutoDrawing) return;
+        if (reading.length >= positions.length || isAutoDrawing) return;
         setAutoControls(true);
         statusText.textContent = "カードを一気に展開しています。";
         try {
-          while (reading.length < 10) {
+          while (reading.length < positions.length) {
             const available = [...deckEl.querySelectorAll(".draw-card:not(.used)")];
             if (available.length === 0) break;
             const index = Math.floor(Math.random() * available.length);
@@ -1062,12 +1194,12 @@
 
       function updateStatus() {
         const count = reading.length;
-        meter.style.width = `${(count / 10) * 100}%`;
-        if (count < 10) {
+        meter.style.width = `${(count / positions.length) * 100}%`;
+        if (count < positions.length) {
           const next = positions[count];
           statusText.textContent = `${count + 1}枚目:「${next.name}」のカードを選んでください。`;
         } else {
-          statusText.textContent = "10枚がそろいました。結果をゆっくり眺めてください。";
+          statusText.textContent = `${positions.length}枚がそろいました。結果を確認してください。`;
         }
       }
 
@@ -1075,28 +1207,8 @@
         return card.reversed ? `${card.meaning}の偏り・停滞` : card.meaning;
       }
 
-      function positionAction(card) {
-        const actions = {
-          1: card.reversed ? "まず無理を認める。" : "今使える力を一つ決める。",
-          2: card.reversed ? "課題を内側の癖として見る。" : "避けている問題に名前をつける。",
-          3: "望みを一文で書く。",
-          4: "本音や前提を確認する。",
-          5: "次に起きる変化へ備える。",
-          6: "前のやり方を引きずらない。",
-          7: "自分の態度を先に整える。",
-          8: "相手や環境の反応を観察する。",
-          9: "願いと不安を分けて考える。",
-          10: card.reversed ? "今の進め方を修正する。" : "この流れを具体的な行動に移す。"
-        };
-        return actions[card.position.id];
-      }
-
       function cardPoints(card) {
-        return [
-          `意味: ${tone(card)}`,
-          `注意: ${cardPressure(card)}`,
-          `一手: ${positionAction(card)}`
-        ];
+        return [`意味: ${tone(card)}`];
       }
 
       function reduceBirthNumber(value) {
@@ -1134,85 +1246,6 @@
             </div>
           </article>
         `;
-      }
-
-      function suitOf(card) {
-        const prefix = card.img.charAt(0);
-        return { c: "カップ", s: "ソード", w: "ワンド", p: "ペンタクル", m: "大アルカナ" }[prefix];
-      }
-
-      function strongestSuit() {
-        const counts = reading.reduce((acc, card) => {
-          const suit = suitOf(card);
-          acc[suit] = (acc[suit] || 0) + 1;
-          return acc;
-        }, {});
-        return Object.entries(counts).sort((a, b) => b[1] - a[1])[0] || ["なし", 0];
-      }
-
-      function pickLine(seed, lines) {
-        return lines[Math.abs(seed) % lines.length];
-      }
-
-      function cardRank(card) {
-        if (card.img.startsWith("m")) return "major";
-        const number = Number(card.img.slice(1, 3));
-        if (number === 1) return "ace";
-        if (number >= 11) return ["page", "knight", "queen", "king"][number - 11];
-        if (number <= 3) return "early";
-        if (number <= 6) return "middle";
-        if (number <= 9) return "late";
-        return "ten";
-      }
-
-      function rankTone(card) {
-        const rank = cardRank(card);
-        const suit = suitOf(card);
-        const tones = {
-          major: `${card.jp}は小さな気分ではなく、今のテーマそのものを変えに来るカードです。`,
-          ace: `${suit}のエースなので、芽はあります。ただし芽であって、完成ではありません。`,
-          early: `${card.jp}は始まりの段階です。まだ固まっていないので、良くも悪くも扱い方次第です。`,
-          middle: `${card.jp}は途中経過のカードです。ここで雑に処理すると後半でツケが来ます。`,
-          late: `${card.jp}は積み上がった結果を示します。偶然ではなく、これまでの選択が表に出ています。`,
-          ten: `${card.jp}は一つの限界や完成を示します。続けるなら形を変える必要があります。`,
-          page: `${card.jp}は未熟さと可能性の両方です。軽い一言や小さな連絡を甘く見ないほうがいいです。`,
-          knight: `${card.jp}は動きのカードです。止まって考えるより、動きながら調整する局面です。`,
-          queen: `${card.jp}は受け止め方を問います。強く出るより、場をどう育てるかが重要です。`,
-          king: `${card.jp}は責任を問います。誰かに決めてもらう態度では、このカードの力は使えません。`
-        };
-        return tones[rank];
-      }
-
-      function cardPressure(card) {
-        const suit = suitOf(card);
-        const messages = {
-          カップ: card.reversed
-            ? "本音の隠しすぎ。態度には出る。"
-            : "感情を無視しない。言葉だけでは弱い。",
-          ソード: card.reversed
-            ? "考えすぎか、言葉不足。"
-            : "事実確認と明確な言葉が鍵。",
-          ワンド: card.reversed
-            ? "勢いが空回り。熱意だけでは足りない。"
-            : "動けば変わる。雑な突破は避ける。",
-          ペンタクル: card.reversed
-            ? "時間・お金・約束・体力の管理を見直す。"
-            : "小さくても形にすること。",
-          大アルカナ: card.reversed
-            ? "認めたくない前提ほど核心。"
-            : "小手先より、腹を決める場面。"
-        };
-        return messages[suit];
-      }
-
-      function themeFromQuestion() {
-        const value = question.value.trim();
-        if (/恋|愛|彼|彼女|結婚|復縁|片思い|相手/.test(value)) return "恋愛";
-        if (/仕事|転職|会社|職場|上司|部下|副業|案件/.test(value)) return "仕事";
-        if (/金|お金|収入|投資|貯金|支払/.test(value)) return "お金";
-        if (/家族|友人|人間関係|親|子|夫|妻/.test(value)) return "人間関係";
-        if (/選|迷|進路|決断|どうする|べき/.test(value)) return "選択";
-        return "全般";
       }
 
       function buildSummary() {
@@ -1323,8 +1356,38 @@
           }
         ];
 
+        const spreadFortunePositions = {
+          three: {
+            総合運: [1, 2, 3],
+            恋愛運: [2, 3],
+            金運: [2, 3],
+            仕事運: [2, 3],
+            健康運: [1, 2],
+            人間関係運: [1, 2, 3],
+            "学業・資格運": [2, 3],
+            家庭運: [1, 2],
+            勝負運: [2, 3],
+            旅行運: [1, 3],
+            助言: [3]
+          },
+          hexagram: {
+            総合運: [1, 2, 3, 7],
+            恋愛運: [5, 6, 7],
+            金運: [2, 3, 7],
+            仕事運: [2, 3, 7],
+            健康運: [2, 4],
+            人間関係運: [5, 6, 7],
+            "学業・資格運": [2, 4, 7],
+            家庭運: [5, 6, 7],
+            勝負運: [2, 3, 7],
+            旅行運: [1, 3, 4],
+            助言: [4, 7]
+          }
+        };
+
         return fortunes.map((fortune) => {
-          const level = levelFor(fortune.positions);
+          const selectedPositions = spreadFortunePositions[currentSpreadKey]?.[fortune.title] || fortune.positions;
+          const level = levelFor(selectedPositions);
           return {
             title: fortune.title,
             result: fortune.result[level],
@@ -1381,7 +1444,7 @@
           })
           .join("");
         const summaryHtml =
-          reading.length === 10
+          reading.length === positions.length
             ? `<section class="summary"><h3>運勢一覧</h3>${buildOrientationGuide()}<div class="fortune-grid">${buildSummary()
                 .map(
                   (section) => `
@@ -1394,7 +1457,7 @@
                   `
                 )
                 .join("")}</div></section>`
-            : '<div class="empty">10枚そろうと、ここに占い全体の総評が表示されます。</div>';
+            : `<div class="empty">${positions.length}枚そろうと、ここに占い全体の総評が表示されます。</div>`;
         results.innerHTML = `${cardsHtml}${summaryHtml}`;
       }
 
@@ -1425,8 +1488,11 @@
         question.value = "";
         question.focus();
       });
+      spreadButtons.forEach((button) => {
+        button.addEventListener("click", () => setSpread(button.dataset.spread));
+      });
 
-      resetReading();
+      setSpread("celtic");
     </script>
   </body>
 </html>
