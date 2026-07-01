@@ -513,31 +513,82 @@
         font-size: 18px;
       }
 
-      .summary p {
-        margin: 0;
-        line-height: 1.75;
+      .orientation-guide {
+        display: grid;
+        gap: 8px;
+        margin: 12px 0 16px;
+        padding-bottom: 14px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.13);
       }
 
-      .summary p + p {
-        margin-top: 10px;
+      .orientation-row {
+        display: grid;
+        grid-template-columns: 120px minmax(0, 1fr);
+        gap: 8px;
+        align-items: start;
+      }
+
+      .orientation-label {
+        font-weight: 700;
+        font-size: 13px;
+      }
+
+      .orientation-label.upright {
+        color: #9ee6b3;
+      }
+
+      .orientation-label.reversed {
+        color: #ffaaa2;
+      }
+
+      .orientation-cards {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+      }
+
+      .orientation-tag {
+        padding: 2px 7px;
+        border-radius: 4px;
+        font-size: 12px;
+        line-height: 1.5;
+        border: 1px solid rgba(255, 255, 255, 0.13);
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      .orientation-tag.reversed {
+        border-color: rgba(255, 170, 162, 0.3);
+      }
+
+      .fortune-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0 18px;
       }
 
       .summary-block {
-        margin-top: 12px;
-        padding-top: 10px;
+        padding: 11px 0;
         border-top: 1px solid rgba(255, 255, 255, 0.11);
-      }
-
-      .summary-block:first-of-type {
-        margin-top: 0;
-        padding-top: 0;
-        border-top: 0;
       }
 
       .summary-block h4 {
         margin: 0;
         color: var(--gold-2);
         font-size: 15px;
+      }
+
+      .fortune-line {
+        display: grid;
+        grid-template-columns: 52px minmax(0, 1fr);
+        gap: 6px;
+        margin-top: 6px;
+        font-size: 13px;
+        line-height: 1.55;
+      }
+
+      .fortune-label {
+        color: var(--muted);
+        font-weight: 700;
       }
 
       .empty {
@@ -556,6 +607,10 @@
 
         .actions {
           justify-content: flex-start;
+        }
+
+        .fortune-grid {
+          grid-template-columns: 1fr;
         }
 
         .reading-table {
@@ -1161,117 +1216,144 @@
       }
 
       function buildSummary() {
-        const current = reading.find((item) => item.position.id === 1);
-        const challenge = reading.find((item) => item.position.id === 2);
-        const conscious = reading.find((item) => item.position.id === 3);
-        const base = reading.find((item) => item.position.id === 4);
-        const future = reading.find((item) => item.position.id === 5);
-        const past = reading.find((item) => item.position.id === 6);
-        const self = reading.find((item) => item.position.id === 7);
-        const environment = reading.find((item) => item.position.id === 8);
-        const hopeFear = reading.find((item) => item.position.id === 9);
-        const outcome = reading.find((item) => item.position.id === 10);
-        const reversedCount = reading.filter((item) => item.reversed).length;
-        const majorCount = reading.filter((item) => item.img.startsWith("m")).length;
-        const courtCount = reading.filter((item) => /11|12|13|14/.test(item.img)).length;
-        const [mainSuit, suitCount] = strongestSuit();
-        const questionTheme = themeFromQuestion();
-        const direction = outcome.reversed ? "結論: 今のまま進めると詰まりやすい。" : "結論: 可能性はある。あとは行動で固める段階。";
-        const reverseText =
-          reversedCount >= 7
-            ? `逆位置${reversedCount}枚: 迷い・先延ばし・思い込みが強い。`
-            : reversedCount >= 4
-              ? `逆位置${reversedCount}枚: 流れは重め。焦って押すより修正が先。`
-              : `逆位置${reversedCount}枚: 大きな停滞より、調整しながら進む読み。`;
-        const suitPlain = {
-          カップ: `主テーマ: 感情・関係・安心感。理屈だけでは片づかない。`,
-          ソード: `主テーマ: 言葉・判断・情報。曖昧さを残すとこじれる。`,
-          ワンド: `主テーマ: 行動・熱意・挑戦。勢いは使えるが雑さに注意。`,
-          ペンタクル: `主テーマ: お金・仕事・生活。続けられる現実案が必要。`,
-          大アルカナ: `主テーマ: 大きな転機。小手先より考え方の変更が必要。`
-        }[mainSuit];
-        const scaleText =
-          majorCount >= 4
-            ? `大アルカナ${majorCount}枚: 軽い話ではない。方向転換の色が強い。`
-            : `大アルカナ${majorCount}枚: 日々の選択で変えられる余地が大きい。`;
-        const peopleText =
-          courtCount >= 3
-            ? `人物札${courtCount}枚: 他人の反応や協力が結果を左右する。`
-            : `人物札${courtCount}枚: 他人待ちより、自分の整え方が効く。`;
-        const themeAdvice = {
-          恋愛: [
-            "相手の気持ちは想像で決めない。連絡・約束・会う行動を見る。",
-            "優しい言葉より継続した行動を見る。口だけなら期待しすぎない。",
-            "待つだけでは弱い。確認するか、距離を置くかを決める。"
-          ],
-          仕事: [
-            "評価より成果物・期限・実績を見る。形に残すこと。",
-            "我慢する理由と、動くのが怖いだけの言い訳を分ける。",
-            "顔色より数字と実績。曖昧な期待には乗らない。"
-          ],
-          お金: [
-            "入る予定より、出ていく固定費とリスクを先に見る。",
-            "得する話より、損した時に耐えられるかを基準にする。",
-            "金額・期限・残高に落とせない計画は信用しない。"
-          ],
-          人間関係: [
-            "丸く収めることと、本音を飲み込むことは別。",
-            "合わせすぎると不満が残る。できることと無理なことを分ける。",
-            "空気を読むだけでは足りない。必要なことは言葉にする。"
-          ],
-          選択: [
-            "正解探しより、選んだ後に続けられるかを見る。",
-            "情報不足ではなく覚悟不足かもしれない。怖い点を書き出す。",
-            "先延ばしも選択。ただし条件は悪くなりやすい。"
-          ],
-          全般: [
-            "望みより、繰り返している行動の癖を見る。",
-            "変えたいなら、いつもの反応を一つ止める。",
-            "残すもの・やめるもの・今週動かすものを分ける。"
-          ]
-        }[questionTheme];
-        const questionSeed = [...question.value].reduce((sum, char) => sum + char.charCodeAt(0), 0);
-        const seed = reading.reduce((sum, item, index) => sum + item.jp.charCodeAt(0) * (index + 5), questionSeed);
-        const advice = pickLine(seed + 23, themeAdvice);
-        const outcomeText =
-          outcome.reversed
-            ? `最終結果: 「${outcome.jp}」逆位置。先に「${challenge.jp}」の課題を直す。`
-            : `最終結果: 「${outcome.jp}」正位置。「${current.jp}」から「${future.jp}」へ行動をつなぐ。`;
+        const positiveCards = new Set([
+          "m03.jpg", "m06.jpg", "m10.jpg", "m17.jpg", "m19.jpg", "m20.jpg", "m21.jpg",
+          "c01.jpg", "c02.jpg", "c03.jpg", "c09.jpg", "c10.jpg",
+          "w01.jpg", "w04.jpg", "w06.jpg", "p01.jpg", "p09.jpg", "p10.jpg"
+        ]);
+        const challengingCards = new Set([
+          "m13.jpg", "m15.jpg", "m16.jpg", "m18.jpg",
+          "c05.jpg", "s03.jpg", "s05.jpg", "s08.jpg", "s09.jpg", "s10.jpg",
+          "w10.jpg", "p05.jpg"
+        ]);
+        const byPosition = Object.fromEntries(reading.map((card) => [card.position.id, card]));
 
-        return [
+        function cardScore(card) {
+          let score = card.reversed ? -1 : 1;
+          if (positiveCards.has(card.img)) score += card.reversed ? 0 : 1;
+          if (challengingCards.has(card.img)) score -= card.reversed ? 1 : 2;
+          return score;
+        }
+
+        function levelFor(positionIds) {
+          const score = positionIds.reduce((sum, id) => sum + cardScore(byPosition[id]), 0) / positionIds.length;
+          if (score < -0.5) return 0;
+          if (score < 0.5) return 1;
+          if (score < 1.5) return 2;
+          return 3;
+        }
+
+        const fortunes = [
           {
-            title: "結論",
-            points: [direction, reverseText, `${mainSuit}${suitCount}枚: ${suitPlain}`, scaleText, peopleText]
+            title: "総合運",
+            positions: [1, 2, 10],
+            result: ["停滞。立て直しが先", "慎重なら持ち直せる", "安定。小さく前進", "追い風。今が動く時"],
+            advice: ["今日の最優先を一つ決める", "未完了の用事を一つ終える", "小さな予定を今日実行する", "決めたことをすぐ始める"],
+            caution: ["一度に全部変えない", "曖昧な返事を続けない", "好機を先延ばししない", "勢いで予定を増やさない"]
           },
           {
-            title: "今の問題",
-            points: [
-              `現在: 「${current.jp}」${current.reversed ? "逆位置" : "正位置"}。${tone(current)}。`,
-              `障害: 「${challenge.jp}」${challenge.reversed ? "逆位置" : "正位置"}。避けるほど残る課題。`,
-              `見るべき点: ${cardPressure(challenge)}`
-            ]
+            title: "恋愛運",
+            positions: [3, 8, 9],
+            result: ["すれ違い。期待は禁物", "本音確認が必要", "穏やかに距離が縮む", "関係進展の好機"],
+            advice: ["相手の行動を一つ確認する", "自分の希望を短く伝える", "感謝を言葉で一度伝える", "会う約束を具体的に決める"],
+            caution: ["返信の速さだけで判断しない", "察してほしい態度を取らない", "相手を試す言動をしない", "理想を押しつけない"]
           },
           {
-            title: "内面と流れ",
-            points: [
-              `顕在意識: 「${conscious.jp}」。表向きに求めていること。`,
-              `土台: 「${base.jp}」。本音や前提に近い部分。`,
-              `過去から未来: 「${past.jp}」から「${future.jp}」へ移る。前のやり方に固執しない。`
-            ]
+            title: "金運",
+            positions: [4, 5, 10],
+            result: ["出費注意。守りが優先", "収支の見直し時", "堅実に増やせる", "収入好転の兆し"],
+            advice: ["固定費を一つ見直す", "今日の支出を記録する", "予算内で必要品だけ買う", "収入につながる作業を始める"],
+            caution: ["うまい儲け話に乗らない", "気分で買い物をしない", "予算外の追加購入をしない", "利益を見込んで先に使わない"]
           },
           {
-            title: "周囲との関係",
-            points: [
-              `あなた: 「${self.jp}」。${self.reversed ? "迷いや偏りが出やすい。" : "姿勢は使える。"}`,
-              `周囲: 「${environment.jp}」。${environment.reversed ? "環境や相手は不安定。" : "協力や反応は拾える。"}`,
-              `願望と不安: 「${hopeFear.jp}」。望みと怖さを分けて見る。`
-            ]
+            title: "仕事運",
+            positions: [3, 5, 10],
+            result: ["空回り。修正が必要", "準備を整える時", "着実に評価が上がる", "成果を出せる好機"],
+            advice: ["最優先の作業を一つ終える", "期限を一つ確認する", "成果を見える形で残す", "提案を一つ形にして出す"],
+            caution: ["感情だけで辞めると決めない", "曖昧な指示を放置しない", "頼まれ事を抱え込みすぎない", "成果を誇張しない"]
           },
           {
-            title: "これからの行動",
-            points: [advice, outcomeText, `今日やること: ${positionAction(outcome)}`]
+            title: "健康運",
+            positions: [4, 7],
+            result: ["疲労蓄積。休養が先", "生活リズムを整える時", "体調は安定傾向", "活力が戻る流れ"],
+            advice: ["今夜は睡眠時間を確保する", "食事の時間を一度整える", "十分だけ歩く", "体を動かす予定を入れる"],
+            caution: ["不調を我慢して放置しない", "夜更かしを続けない", "調子に乗って無理をしない", "休まず動き続けない"]
+          },
+          {
+            title: "人間関係運",
+            positions: [7, 8, 9],
+            result: ["対立注意。距離が必要", "誤解を解く時", "協力を得やすい", "信頼が深まる好機"],
+            advice: ["嫌な点を一つだけ伝える", "事実を短く確認する", "相手の話を最後まで聞く", "助けを一度頼む"],
+            caution: ["陰で不満を広げない", "相手の意図を決めつけない", "全員に合わせようとしない", "親しさに甘えすぎない"]
+          },
+          {
+            title: "学業・資格運",
+            positions: [2, 3, 5],
+            result: ["集中不足。基礎へ戻る", "学習計画の修正時", "努力が定着し始める", "合格へ伸びる時"],
+            advice: ["苦手分野を一問だけ解く", "勉強時間を一枠決める", "過去問を一回分解く", "今日の目標範囲を終える"],
+            caution: ["教材を増やしすぎない", "分からない点を放置しない", "得意分野だけ繰り返さない", "結果を急いで詰め込まない"]
+          },
+          {
+            title: "家庭運",
+            positions: [4, 8],
+            result: ["不満が表面化しやすい", "役割の調整が必要", "家庭内は安定傾向", "安心できる流れ"],
+            advice: ["家の用事を一つ引き受ける", "困り事を一つ話し合う", "家族に感謝を一度伝える", "一緒に過ごす時間を決める"],
+            caution: ["昔の不満を持ち出さない", "役割を勝手に決めない", "小さな不満をため込まない", "善意を当然と思わない"]
+          },
+          {
+            title: "勝負運",
+            positions: [1, 5, 10],
+            result: ["分が悪い。撤退も選択", "条件確認が先", "勝機あり。冷静に進む", "強い追い風。攻め時"],
+            advice: ["損失の上限を先に決める", "勝つ条件を一つ確認する", "得意な方法に絞る", "好機を見たら一度動く"],
+            caution: ["負けを取り返そうとしない", "勢いだけで賭けない", "途中で方針を増やさない", "勝ちを確信しすぎない"]
+          },
+          {
+            title: "旅行運",
+            positions: [5, 6, 8],
+            result: ["延期や変更が無難", "準備次第で楽しめる", "穏やかな旅になる", "発見の多い好機"],
+            advice: ["予約条件を一つ確認する", "持ち物表を作る", "余裕ある移動時間を取る", "行きたい場所を一つ予約する"],
+            caution: ["無理な日程を組まない", "天候確認を忘れない", "荷物を増やしすぎない", "予定を詰め込みすぎない"]
+          },
+          {
+            title: "助言",
+            positions: [2, 7, 10],
+            result: ["立て直しが最優先", "急がず足場を固める", "一歩進める好機", "決断して進む時"],
+            advice: ["今日の最優先を一つ決める", "止まっている用事を一つ終える", "信頼できる人に一度相談する", "決めたことを今日始める"],
+            caution: ["同時に多くを変えない", "不安だけで結論を出さない", "他人の答えをそのまま選ばない", "勢いで約束を増やさない"]
           }
         ];
+
+        return fortunes.map((fortune) => {
+          const level = levelFor(fortune.positions);
+          return {
+            title: fortune.title,
+            result: fortune.result[level],
+            advice: fortune.advice[level],
+            caution: fortune.caution[level]
+          };
+        });
+      }
+
+      function buildOrientationGuide() {
+        const upright = reading.filter((card) => !card.reversed);
+        const reversed = reading.filter((card) => card.reversed);
+        const tags = (cards, className = "") =>
+          cards.length
+            ? cards.map((card) => `<span class="orientation-tag ${className}">${card.jp}</span>`).join("")
+            : '<span class="orientation-tag">なし</span>';
+
+        return `
+          <div class="orientation-guide" aria-label="カードの正位置と逆位置">
+            <div class="orientation-row">
+              <span class="orientation-label upright">● 正位置のカード ${upright.length}枚</span>
+              <div class="orientation-cards">${tags(upright)}</div>
+            </div>
+            <div class="orientation-row">
+              <span class="orientation-label reversed">● 逆位置のカード ${reversed.length}枚</span>
+              <div class="orientation-cards">${tags(reversed, "reversed")}</div>
+            </div>
+          </div>
+        `;
       }
 
       function updateResults() {
@@ -1300,16 +1382,18 @@
           .join("");
         const summaryHtml =
           reading.length === 10
-            ? `<section class="summary"><h3>総評</h3>${buildSummary()
+            ? `<section class="summary"><h3>運勢一覧</h3>${buildOrientationGuide()}<div class="fortune-grid">${buildSummary()
                 .map(
                   (section) => `
                     <div class="summary-block">
                       <h4>${section.title}</h4>
-                      <ul>${section.points.map((point) => `<li>${point}</li>`).join("")}</ul>
+                      <div class="fortune-line"><span class="fortune-label">【結果】</span><span>${section.result}</span></div>
+                      <div class="fortune-line"><span class="fortune-label">【助言】</span><span>${section.advice}</span></div>
+                      <div class="fortune-line"><span class="fortune-label">【注意】</span><span>${section.caution}</span></div>
                     </div>
                   `
                 )
-                .join("")}</section>`
+                .join("")}</div></section>`
             : '<div class="empty">10枚そろうと、ここに占い全体の総評が表示されます。</div>';
         results.innerHTML = `${cardsHtml}${summaryHtml}`;
       }
